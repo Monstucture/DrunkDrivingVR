@@ -54,11 +54,25 @@ public class DrunkEffect : MonoBehaviour
 
     void Update()
     {
-        if (impairmentLevel <= 0f) return;
+        if (cameraTransform == null)
+            return;
+
+        if (impairmentLevel <= 0f)
+        {
+            // Ensure camera rotation is restored when completely sober
+            cameraTransform.localRotation = originalLocalRotation;
+            return;
+        }
 
         // Slowly sober up over time
         impairmentLevel = Mathf.Max(0f, impairmentLevel - sobringUpRate * Time.deltaTime);
 
+        if (impairmentLevel <= 0f)
+        {
+            // Impairment just reached zero; reset rotation and skip wobble
+            cameraTransform.localRotation = originalLocalRotation;
+            return;
+        }
         ApplyWobble();
     }
 
