@@ -433,24 +433,28 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
+      propertyPath: _enableDynamicResolution
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: dynamicResolutionVersion
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: quest2MaxDynamicResolutionScale
-      value: 1
+      value: 1.3
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: quest2MinDynamicResolutionScale
-      value: 1
+      value: 0.7
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: quest3MaxDynamicResolutionScale
-      value: 1
+      value: 1.6
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: quest3MinDynamicResolutionScale
-      value: 1
+      value: 0.7
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: ce816f2e6abb0504092c23ed9b970dfd, type: 3}
       propertyPath: requestScenePermissionOnStartup
@@ -1589,6 +1593,9 @@ MonoBehaviour:
   playerRig: {fileID: 225836870}
   carController: {fileID: 1561745844}
   seatAnchor: {fileID: 2037442433}
+  exitDistance: 1.5
+  exitOnRightSide: 1
+  ovrPlayerController: {fileID: 0}
 --- !u!65 &1093390594
 BoxCollider:
   m_ObjectHideFlags: 0
