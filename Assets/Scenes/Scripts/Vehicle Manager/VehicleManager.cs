@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Enhanced VehicleManager for VR car enter/exit functionality
-/// Attach this to your Car's root GameObject
+/// Enhanced VehicleManager for VR car enter/exit functionality.
+/// Attach this to your Car's root GameObject.
 /// </summary>
 public class VehicleManager : MonoBehaviour
 {
@@ -10,7 +10,7 @@ public class VehicleManager : MonoBehaviour
     [Tooltip("Your OVRPlayerController or XR Rig")]
     public GameObject playerRig;
 
-    [Tooltip("Your car controller script (e.g., CarController2)")]
+    [Tooltip("Your car controller script")]
     public CarController2_VR carController;
 
     [Tooltip("Empty GameObject at driver's head/seat position")]
@@ -24,7 +24,7 @@ public class VehicleManager : MonoBehaviour
     public bool exitOnRightSide = true;
 
     [Header("Optional - Disable Player Movement")]
-    [Tooltip("Reference to OVRPlayerController if you want to disable movement")]
+    [Tooltip("Reference to OVRPlayerController if you want to disable movement while driving")]
     public MonoBehaviour ovrPlayerController;
 
     private bool inCar = false;
@@ -34,138 +34,83 @@ public class VehicleManager : MonoBehaviour
 
     void Start()
     {
-        // Disable car controller at start
         if (carController != null)
-        {
             carController.enabled = false;
-        }
 
-        // Validate setup
         if (playerRig == null)
-        {
             Debug.LogError("PlayerRig not assigned to VehicleManager!");
-        }
+
         if (seatAnchor == null)
         {
             Debug.LogWarning("SeatAnchor not assigned. Creating one at car's position.");
             seatAnchor = new GameObject("SeatAnchor").transform;
             seatAnchor.SetParent(transform);
-            seatAnchor.localPosition = new Vector3(0, 1.5f, 0); // Default height
+            seatAnchor.localPosition = new Vector3(0, 1.5f, 0);
         }
     }
 
-    /// <summary>
-    /// Toggle between entering and exiting the car
-    /// </summary>
+    /// <summary>Toggle between entering and exiting the car.</summary>
     public void ToggleVehicle()
     {
-        if (!inCar)
-            EnterCar();
-        else
-            ExitCar();
+        if (!inCar) EnterCar();
+        else ExitCar();
     }
 
-    /// <summary>
-    /// Enter the car and enable driving
-    /// </summary>
     public void EnterCar()
     {
-        if (inCar || playerRig == null)
-            return;
+        if (inCar || playerRig == null) return;
 
         Debug.Log("Entering car...");
         inCar = true;
 
-        // Store original position/rotation/parent for exit
         originalPlayerPosition = playerRig.transform.position;
         originalPlayerRotation = playerRig.transform.rotation;
         originalPlayerParent = playerRig.transform.parent;
 
-        // Parent player to the car (this makes player move with the car)
         playerRig.transform.SetParent(transform);
-
-        // Position player at the seat anchor
         playerRig.transform.position = seatAnchor.position;
         playerRig.transform.rotation = seatAnchor.rotation;
 
-        // Disable player walking/movement
-        CharacterController characterController = playerRig.GetComponent<CharacterController>();
-        if (characterController != null)
-        {
-            characterController.enabled = false;
-        }
+        CharacterController cc = playerRig.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
 
-        // Disable OVR player controller if present
-        if (ovrPlayerController != null)
-        {
-            ovrPlayerController.enabled = false;
-        }
-
-        // Enable car driving
-        if (carController != null)
-        {
-            carController.enabled = true;
-        }
+        if (ovrPlayerController != null) ovrPlayerController.enabled = false;
+        if (carController != null) carController.enabled = true;
     }
 
-    /// <summary>
-    /// Exit the car and re-enable walking
-    /// </summary>
     public void ExitCar()
     {
-        if (!inCar || playerRig == null)
-            return;
+        if (!inCar || playerRig == null) return;
 
         Debug.Log("Exiting car...");
         inCar = false;
 
-        // Unparent from car
         playerRig.transform.SetParent(originalPlayerParent);
 
-        // Calculate exit position (to the side of the car)
-        Vector3 exitDirection = exitOnRightSide ? transform.right : -transform.right;
-        Vector3 exitPosition = transform.position + exitDirection * exitDistance;
+        Vector3 exitDir = exitOnRightSide ? transform.right : -transform.right;
+        playerRig.transform.position = transform.position + exitDir * exitDistance;
 
-        // Place player at exit position
-        playerRig.transform.position = exitPosition;
+        CharacterController cc = playerRig.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = true;
 
-        // Keep the rotation or reset it
-        // playerRig.transform.rotation = originalPlayerRotation; // Uncomment to reset rotation
+        if (ovrPlayerController != null) ovrPlayerController.enabled = true;
+        if (carController != null) carController.enabled = false;
+    }
 
-        // Re-enable walking
-        CharacterController characterController = playerRig.GetComponent<CharacterController>();
-        if (characterController != null)
-        {
-            characterController.enabled = true;
-        }
+    public bool IsInCar() => inCar;
 
-        // Re-enable OVR player controller
-        if (ovrPlayerController != null)
-        {
-            ovrPlayerController.enabled = true;
-        }
-
-        // Disable car driving
-        if (carController != null)
-        {
-            carController.enabled = false;
-        }
+    void OnDestroy()
+    {
+        if (inCar) ExitCar();
     }
 
     /// <summary>
-    /// Check if player is currently in the car
+    /// Called every frame by SteeringWheelInteraction_OVR.
+    /// Passes the normalised steering value (-1..1) straight to the car.
     /// </summary>
-    public bool IsInCar()
+    public void SetSteering(float value)
     {
-        return inCar;
-    }
-
-    // Optional: Force exit on destruction
-    void OnDestroy()
-    {
-        if (inCar)
-        {
-            ExitCar();
-        }
+        if (!inCar || carController == null) return;
+        carController.SetExternalSteering(value);
     }
 }
