@@ -11,6 +11,15 @@ public class BottleGrabbable : MonoBehaviour
     [Tooltip("How close the right hand must be to grab the bottle")]
     public float grabRange = 0.15f;
 
+    [Header("Drinking Settings")]
+    [Tooltip("How close the bottle must be to the head to count as drinking")]
+    public float drinkRange = 0.25f;
+    [Tooltip("How many seconds of continuous drinking before registering a sip")]
+    public float drinkDuration = 1.5f;
+    [Tooltip("Reference to the DrunkEffect script in the scene")]
+    // EDITOR SETUP: Drag the OVRCameraRig GameObject into this slot in the Inspector
+    public DrunkEffect drunkEffect;
+
     [Header("Visual Feedback")]
     [Tooltip("Show highlight when hand is in range")]
     public bool showHighlight = true;
@@ -18,12 +27,15 @@ public class BottleGrabbable : MonoBehaviour
     public Material highlightMaterial;
 
     private Transform rightHand;
+    private Transform headAnchor;
     private Rigidbody rb;
     private Renderer bottleRenderer;
     private Material originalMaterial;
 
     private bool isHeld = false;
     private bool isInRange = false;
+    private bool isDrinking = false;
+    private float drinkTimer = 0f;
 
     // Used to calculate throw velocity when dropping
     private Vector3 prevHandPos;
@@ -39,11 +51,12 @@ public class BottleGrabbable : MonoBehaviour
         if (bottleRenderer != null)
             originalMaterial = bottleRenderer.material;
 
-        // Find OVR right hand anchor
+        // Find OVR hand and head anchors
         OVRCameraRig rig = FindObjectOfType<OVRCameraRig>();
         if (rig != null)
         {
             rightHand = rig.rightHandAnchor;
+            headAnchor = rig.centerEyeAnchor;
         }
         else
         {
@@ -52,12 +65,17 @@ public class BottleGrabbable : MonoBehaviour
             {
                 Transform trackingSpace = ovrCameraRig.transform.Find("TrackingSpace");
                 if (trackingSpace != null)
+                {
                     rightHand = trackingSpace.Find("RightHandAnchor");
+                    headAnchor = trackingSpace.Find("CenterEyeAnchor");
+                }
             }
         }
 
         if (rightHand == null)
             Debug.LogWarning("BottleGrabbable: Could not find RightHandAnchor. Make sure OVRCameraRig is in the scene.");
+        if (headAnchor == null)
+            Debug.LogWarning("BottleGrabbable: Could not find CenterEyeAnchor. Drinking detection will not work.");
     }
 
     void Update()
@@ -68,6 +86,7 @@ public class BottleGrabbable : MonoBehaviour
 
         if (isHeld)
         {
+            HandleDrinking();
             HandleDrop();
         }
         else
@@ -107,6 +126,47 @@ public class BottleGrabbable : MonoBehaviour
         }
     }
 
+    void HandleDrinking()
+    {
+        if (headAnchor == null) return;
+
+        bool bottleNearFace = Vector3.Distance(transform.position, headAnchor.position) <= drinkRange;
+
+        if (bottleNearFace)
+        {
+            if (!isDrinking)
+            {
+                isDrinking = true;
+                drinkTimer = 0f;
+                Debug.Log("[Bottle] Raise bottle to drink...");
+            }
+
+            drinkTimer += Time.deltaTime;
+
+            if (drinkTimer >= drinkDuration)
+            {
+                drinkTimer = 0f;
+                OnSipTaken();
+            }
+        }
+        else
+        {
+            if (isDrinking)
+            {
+                isDrinking = false;
+                drinkTimer = 0f;
+                Debug.Log("[Bottle] Stopped drinking.");
+            }
+        }
+    }
+
+    void OnSipTaken()
+    {
+        Debug.Log("[Bottle] Drinking! Impairment increasing.");
+        if (drunkEffect != null)
+            drunkEffect.AddSip();
+    }
+
     void HandleDrop()
     {
         // Right index trigger released
@@ -141,6 +201,8 @@ public class BottleGrabbable : MonoBehaviour
         if (rb == null) return;
 
         isHeld = false;
+        isDrinking = false;
+        drinkTimer = 0f;
 
         // Unparent before re-enabling physics
         transform.SetParent(null, worldPositionStays: true);
